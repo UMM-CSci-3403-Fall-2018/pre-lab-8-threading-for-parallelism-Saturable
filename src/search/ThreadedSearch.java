@@ -29,32 +29,41 @@ public class ThreadedSearch<T> implements Searcher<T>, Runnable {
      * You can assume that the list size is divisible by `numThreads`
      */
     public boolean search(T target, List<T> list) throws InterruptedException {
-        /*
-         * First construct an instance of the `Answer` inner class. This will
-         * be how the threads you're about to create will "communicate". They
-         * will all have access to this one shared instance of `Answer`, where
-         * they can update the `answer` field inside that instance.
-         *
-         * Then construct `numThreads` instances of this class (`ThreadedSearch`)
-         * using the 5 argument constructor for the class. You'll hand each of
-         * them the same `target`, `list`, and `answer`. What will be different
-         * about each instance is their `begin` and `end` values, which you'll
-         * use to give each instance the "job" of searching a different segment
-         * of the list. If, for example, the list has length 100 and you have
-         * 4 threads, you would give the four threads the ranges [0, 25), [25, 50),
-         * [50, 75), and [75, 100) as their sections to search.
-         *
-         * You then construct `numThreads`, each of which is given a different
-         * instance of this class as its `Runnable`. Then start each of those
-         * threads, wait for them to all terminate, and then return the answer
-         * in the shared `Answer` instance.
-         */
+        try {
+            Answer answer = new Answer();
+            int increment = list.size() / numThreads;
+
+            // Construct the thread array and start the threads.
+            Thread threadArray[] = new Thread[numThreads];
+            for (int i = 0; i < numThreads; i++) {
+                begin = increment * i;
+                end = increment * (i + 1);
+                threadArray[i] = new Thread(new ThreadedSearch<>(target, list, begin, end, answer));
+                threadArray[i].start();
+            }
+
+            // Join the threads.
+            for (int i = 0; i < numThreads; i++) {
+                threadArray[i].join();
+            }
+
+            return answer.getAnswer();
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         return false;
     }
 
     public void run() {
-        // Delete this `throw` when you actually implement this method.
-        throw new UnsupportedOperationException();
+        for (int i = begin; i < end; i++) {
+            if (target.equals(list.get(i))) {
+                answer.setAnswer(true);
+            }
+            if (answer.getAnswer() == true) {
+                break;
+            }
+        }
     }
 
     private class Answer {
